@@ -1,63 +1,172 @@
 @import "./reset";
 
-html,body {
+html,
+body {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
     height: 100%;
-    background-color: #333;
+    background-image: radial-gradient(circle at center, #002129, #000);
+    overflow: hidden;
+    font-family: 'Josefin Sans', sans-serif;
 }
 
-// #obj {
-//   background: blue;
-//   width: 20px;
-//   height: 20px;
-//   border-radius: 10px;
-//   position: absolute;
-//   /* Align center */
-//   top: -10px;
-//   left: -10px;
-//   opacity: 0.5;
-// }
-
 .container {
-  position: relative;
-  overflow: hidden;
-  background-color: #eee;
-  svg {
-      opacity: 0;
-      pointer-events: none;
-  }
-  .player {
-    width: 100px;
-    height: 100px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-color: rgba(#111, 0.5);
-    border-radius: 30px;
-    
-    .marble-1,
-    .marble-2 {
+    position: relative;
+    background-image: url("./../image/bg.svg");
+    &::before {
+        content: "";
+        display: block;
+        width: 1287.709px;
+        height: 1004.262px;
+        background-image: url("./../image/bg-leaf.svg");
         position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #111;
+        top: -55px;
+        left: -80px;
     }
-    .marble-1 {
-        width: 60px;
-        height: 60px;
-        border-radius: 100px;
+    .leaf {
+        position: absolute;
+        z-index: 10;
+    }
+    .leaf-01 {
+        width: 290.296px;
+        height: 197.981px;
+        background-image: url("./../image/leaf-01.svg");
+        transform-origin: top left;
+        top: -10px;
+        left: -50px;
+        animation: leaf 8s -2s infinite;
+    }
+    .leaf-02 {
+        width: 130.828px;
+        height: 131.056px;
+        background-image: url("./../image/leaf-02.svg");
+        transform-origin: top right;
+        top: -60px;
+        right: 325px;
+        animation: leaf 10s -3s infinite;
+    }
+    .leaf-03 {
+        width: 214.618px;
+        height: 225.252px;
+        background-image: url("./../image/leaf-03.svg");
+        transform-origin: top right;
+        top: 60px;
+        right: -60px;
+        animation: leaf 5s -2s infinite;
+    }
+    .leaf-04 {
+        width: 303.2px;
+        height: 356.908px;
+        background-image: url("./../image/leaf-04.svg");
+        transform-origin: bottom left;
+        bottom: -60px;
+        left: 0px;
+        animation: leaf 7s -1s infinite;
+    }
+    .leaf-05 {
+        width: 253.153px;
+        height: 292.861px;
+        background-image: url("./../image/leaf-05.svg");
+        transform-origin: bottom right;
+        bottom: -110px;
+        right: 660px;
+        animation: leaf 9s -3s infinite;
+    }
+    .leaf-06 {
+        width: 269.787px;
+        height: 346.454px;
+        background-image: url("./../image/leaf-06.svg");
+        transform-origin: bottom right;
+        bottom: -75px;
+        right: -40px;
+        animation: leaf 15s -5s infinite;
+    }
+    svg {
+        opacity: 0;
+        pointer-events: none;
+    }
+    .player {
+        width: 175px;
+        height: 175px;
+        position: absolute;
         top: 0;
+        left: 0;
+        z-index: 11;
+        &::before {
+            content: "";
+            display: block;
+            width: 2px;
+            height: 600px;
+            margin-left: -1px;
+            position: absolute;
+            left: 50%;
+            bottom: 30px;
+            background-image: linear-gradient(rgba(#fff, 0), rgba(#fff, 0.5));
+            z-index: 1;
+        }
+        &::after {
+            content: "";
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-size: contain;
+            background-image: url("./../image/frog.svg");
+            z-index: 2;
+        }
+        .marble-1,
+        .marble-2 {
+            position: absolute;
+            z-index: 3;
+        }
+        .marble-1 {
+            width: 60px;
+            height: 60px;
+            border-radius: 100px;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .marble-2 {
+            width: 20px;
+            height: 20px;
+            border-radius: 100px;
+            left: 50%;
+            border: solid 5px #83be7c;
+            &:nth-child(2) {
+                top: 85px;
+                transform: translateX(calc(-50% - 30px));
+            }
+            &:nth-child(3) {
+                width: 25px;
+                height: 25px;
+                top: 105px;
+                transform: translateX(-50%);
+            }
+            &:nth-child(4) {
+                top: 85px;
+                transform: translateX(calc(-50% + 30px));
+            }
+        }
     }
-    .marble-2 {
-        width: 30px;
-        height: 30px;
+    .start-hole {
+        width: 100px;
+        height: 100px;
         border-radius: 100px;
-        bottom: 0;
+        background-color: rgba(#000, 1);
+        position: absolute;
+        transform: translate(-50%, -50%);
     }
-  }
+    .final-hole {
+        width: 100px;
+        height: 100px;
+        border-radius: 100px;
+        background-color: rgba(#000, 0.5);
+        position: absolute;
+        transform: translate(-50%, -50%);
+    }
 }
 
 .marble {
@@ -66,5 +175,180 @@ html,body {
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 10;
+    z-index: 2;
+}
+
+.shadow {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-image: radial-gradient(circle at center, rgba(#002129, 0), rgba(#000, 0.8));
+    z-index: 20;
+    pointer-events: none;
+    &::before {
+        content: "";
+        display: block;
+        width: 100%;
+        height: 100%;
+        background-image: url("./../image/noise.png");
+        position: absolute;
+        opacity: 0.1;
+    }
+}
+.github {
+    width: 50px;
+    height: 50px;
+    border-radius: 100px;
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    background-color: rgba(#fff, 0.5);
+    a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        color: #002129;
+        font-size: 30px;
+        font-weight: bold;
+        text-decoration: none;
+    }
+}
+.score {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    color: #fff;
+    text-align: right;
+    .title {
+        font-size: 16px;
+    }
+    .num {
+        font-size: 90px;
+    }
+}
+
+.popup-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #002129;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 19;
+    pointer-events: none;
+    .popup {
+        min-width: 300px;
+        padding: 50px 40px 30px;
+        border-radius: 30px;
+        opacity: 0;
+        background-color: rgba(#fff, 0.8);
+        position: absolute;
+        transform: translateY(20px);
+        transition: 0.2s;
+        pointer-events: none;
+        z-index: 1;
+        &::after {
+            content: '';
+            display: block;
+            width: calc(100% - 20px);
+            height: calc(100% - 20px);
+            border: solid 5px #002129;
+            border-radius: 30px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .title {
+            font-size: 30px;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        .info {
+            font-size: 16px;
+            color: #002129;
+            text-align: center;
+            ul {
+                list-style-type: disc;
+                padding-left: 1em;
+                text-align-last: left;
+                li {
+                    margin-top: 10px;
+                }
+            }
+            .num {
+                font-size: 24px;
+                font-weight: bold;
+            }
+        }
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            margin-top: 30px;
+            .button {
+                font-size: 20px;
+                font-weight: 500;
+                color: #fff;
+                font-size: 16px;
+                text-align: center;
+                letter-spacing: 1px;
+                background-color: #002129;
+                border-radius: 100px;
+                padding: 15px 30px 10px;
+                cursor: pointer;
+                &.button-2 {
+                    padding: 0;
+                    margin-top: 15px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #002129;
+                    background-color: transparent;
+                }
+            }
+        }
+    }
+    .popup.active {
+        opacity: 1;
+        transform: translateY(0px);
+        pointer-events: auto;
+        & ~ .mask{
+            opacity: 1;
+        }
+    }
+    .mask {
+        width: 100%;
+        height: 100%;
+        background-color: rgba(#000, 0.5);
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        transition: 0.5s;
+        pointer-events: none;
+    }
+}
+
+@keyframes leaf {
+    0% {
+        transform: rotate(0deg);
+    }
+    50% {
+        transform: rotate(10deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
 }

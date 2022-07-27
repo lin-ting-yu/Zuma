@@ -44,7 +44,7 @@ class Marble {
             return this;
         }
         this.parent.removeChild(this.DOM);
-        // this.parent = null;
+        this.parent = null;
         return this;
     }
     overlap(marble) {
@@ -57,10 +57,10 @@ Marble.Size = 60;
 class Player {
     constructor({ x = 0, y = 0 }) {
         this.Marble = createDiv(["marble-1"]);
-        this.NextMarble = createDiv(["marble-2"]);
+        this.NextMarbleList = [createDiv(["marble-2"]), createDiv(["marble-2"]), createDiv(["marble-2"])];
         this.DOM = createDiv(["player"], [
             this.Marble,
-            this.NextMarble
+            ...this.NextMarbleList
         ]);
         this.X = x;
         this.Y = y;
@@ -89,7 +89,9 @@ class Player {
         return this;
     }
     setNextMarbleColor(color) {
-        this.NextMarble.style.backgroundColor = color;
+        this.NextMarbleList.forEach(dom => {
+            dom.style.backgroundColor = color;
+        });
         return this;
     }
     getVector() {
@@ -104,7 +106,14 @@ class Zuma {
     constructor(data) {
         this.AllMarbleLength = 100;
         this.InitMarbleLength = 20;
-        this.Container = createDiv(["container"]);
+        this.Container = createDiv(["container"], [
+            createDiv(['leaf', 'leaf-01']),
+            createDiv(['leaf', 'leaf-02']),
+            createDiv(['leaf', 'leaf-03']),
+            createDiv(['leaf', 'leaf-04']),
+            createDiv(['leaf', 'leaf-05']),
+            createDiv(['leaf', 'leaf-06'])
+        ]);
         this.Path = createElementNS("path", {});
         this.moveSpeed = 4;
         this.autoAddMarbleCount = 0;
@@ -113,15 +122,15 @@ class Zuma {
         this.marbleColorCount = {};
         this.moveTimes = 0;
         this.isStart = false;
-        this.isInit = false;
-        this.isFinal = false;
+        this._isInit = false;
+        this._isFinal = false;
         this.windowEventList = [];
         this.checkDeleteAfterTouchData = {};
         this.playerMarble = {
             now: null,
             next: null
         };
-        this._blood = 100;
+        this._score = 0;
         this.width = data.width;
         this.height = data.height;
         const svg = createElementNS("svg", {
@@ -134,6 +143,16 @@ class Zuma {
         svg.appendChild(this.Path);
         this.Path.setAttributeNS(null, "d", data.path);
         this.PathLength = this.Path.getTotalLength();
+        const startHolePos = this.Path.getPointAtLength(0);
+        const finalHolePos = this.Path.getPointAtLength(this.PathLength);
+        const startHole = createDiv(['start-hole']);
+        const finalHole = createDiv(['final-hole']);
+        startHole.style.left = `${startHolePos.x}px`;
+        startHole.style.top = `${startHolePos.y}px`;
+        finalHole.style.left = `${finalHolePos.x}px`;
+        finalHole.style.top = `${finalHolePos.y}px`;
+        this.Container.appendChild(startHole);
+        this.Container.appendChild(finalHole);
         this.Container.style.width = `${data.width}px`;
         this.Container.style.height = `${data.height}px`;
         this.Container.style.transform = `scale(${data.scale || 1})`;
@@ -143,9 +162,25 @@ class Zuma {
         this.colorList.forEach((color) => {
             this.marbleColorCount[color] = 0;
         });
+        this.updateScore = data.updateScore;
+        this.updateFinal = data.updateFinal;
     }
-    get blood() {
-        return this._blood;
+    get isInit() {
+        return this._isInit;
+    }
+    set isFinal(isFinal) {
+        this._isFinal = isFinal;
+        this.updateFinal && this.updateFinal(this._isFinal);
+    }
+    get isFinal() {
+        return this._isFinal;
+    }
+    set score(score) {
+        this._score = score;
+        this.updateScore && this.updateScore(this._score);
+    }
+    get score() {
+        return this._score;
     }
     start() {
         this.isStart = true;
@@ -162,12 +197,22 @@ class Zuma {
     }
     reset() {
         this.isStart = false;
-        this.isInit = false;
-        this.marbleDataList.length = 0;
+        this._isInit = false;
+        this.isFinal = false;
         this.autoAddMarbleCount = 0;
+        this.score = 0;
         this.moveSpeed = 4;
         this.colorList = [...Zuma.DefaultColorList];
+        this.marbleDataList.forEach(d => d.marble.remove());
+        this.marbleBoomList.forEach(d => d.marble.remove());
+        this.marbleDataList.length = 0;
+        this.marbleBoomList.length = 0;
         this.checkDeleteAfterTouchData = {};
+        this.playerMarble.now = null;
+        this.playerMarble.next = null;
+        this.Player
+            .setMarbleColor('')
+            .setNextMarbleColor('');
         Object.keys(this.marbleColorCount).forEach((color) => {
             this.marbleColorCount[color] = 0;
         });
@@ -208,8 +253,8 @@ class Zuma {
     }
     init() {
         const innerTime = new Date().getTime();
-        if (this.marbleDataList.length >= this.InitMarbleLength) {
-            this.isInit = true;
+        if (this.marbleDataList.length >= this.InitMarbleLength && this.isStart) {
+            this._isInit = true;
             this.moveSpeed = 20;
             this.moveTimes = this.moveSpeed;
             this.playerMarble.now = this.createMarble();
@@ -232,26 +277,28 @@ class Zuma {
             return;
         }
         if (firstMarble.percent >= 0.99) {
+            this.score -= 1;
             this.removeMarbleFromDataList(firstMarble.marble);
         }
         const moveNum = Marble.Size / this.moveSpeed;
         firstMarble.percent += moveNum / this.PathLength;
         const pos = this.Path.getPointAtLength(firstMarble.percent * this.PathLength);
         firstMarble.marble.setPosition(pos.x, pos.y);
-        let prevMarble = firstMarble.marble;
+        let prevMarble = firstMarble;
         const deleteList = [];
         for (let i = 1; i < this.marbleDataList.length; i++) {
             const marbleData = this.marbleDataList[i];
             if (marbleData.percent >= 0.99) {
+                this.score -= 1;
                 this.removeMarbleFromDataList(marbleData.marble, i);
                 continue;
             }
-            const overlap = prevMarble.overlap(marbleData.marble);
+            const overlap = prevMarble.marble.overlap(marbleData.marble);
             if (overlap > 0) {
                 // 檢查退回後修不需要刪除
                 if (this.checkDeleteAfterTouchData[marbleData.marble.ID]) {
                     delete this.checkDeleteAfterTouchData[marbleData.marble.ID];
-                    if (marbleData.marble.Color === prevMarble.Color) {
+                    if (marbleData.marble.Color === prevMarble.marble.Color) {
                         const list = this.getNeerSameMarble(marbleData.marble);
                         if (list.length >= 3) {
                             deleteList.push(...list);
@@ -260,7 +307,7 @@ class Zuma {
                 }
                 marbleData.percent += overlap / this.PathLength;
             }
-            else if (overlap < -5) {
+            else if (overlap < -5 && marbleData.percent > prevMarble.percent) {
                 if (overlap < -Marble.Size) {
                     this.checkDeleteAfterTouchData[marbleData.marble.ID] = true;
                 }
@@ -269,9 +316,10 @@ class Zuma {
             }
             const pos = this.Path.getPointAtLength(marbleData.percent * this.PathLength);
             marbleData.marble.setPosition(pos.x, pos.y);
-            prevMarble = marbleData.marble;
+            prevMarble = marbleData;
         }
         deleteList.forEach(marble => {
+            this.score += 3;
             this.removeMarbleFromDataList(marble);
         });
     }
@@ -291,6 +339,7 @@ class Zuma {
                     if (data.marble.Color === marbleData.marble.Color) {
                         const sameList = this.getNeerSameMarble(marbleData.marble);
                         if (sameList.length >= 2) {
+                            this.score += sameList.length;
                             sameList.forEach(marble => {
                                 this.removeMarbleFromDataList(marble);
                             });
@@ -402,13 +451,17 @@ class Zuma {
             return;
         }
         this.time = innerTime;
-        if (this.moveTimes === this.moveSpeed) {
+        if (this.moveTimes === this.moveSpeed &&
+            this.autoAddMarbleCount < this.AllMarbleLength) {
             this.unshiftMarble();
             this.moveTimes = 0;
         }
         this.moveMoveMarbleBoom();
         this.moveMoveMarbleData();
         this.moveTimes++;
+        if (this.marbleDataList.length === 0) {
+            this.isFinal = true;
+        }
     }
     bindEvent() {
         const mousemove = (e) => {
@@ -445,15 +498,60 @@ class Zuma {
         this.windowEventList.push({ name: 'mousemove', fn: mousemove }, { name: 'click', fn: click }, { name: 'keydown', fn: keydown });
     }
 }
-Zuma.DefaultColorList = ["#ff2244", "#115599", "#dddddd", "#449944", "#660000"];
-const zumaGame = new Zuma({
-    width: 1200,
-    height: 800,
-    scale: 0.7,
-    path: `M235.5-36.5c0,0-129,157.858-143,381.918c-6.6,105.632,47,236.043,159,295.679s338.566,101.881,547,64.404
-	c199-35.781,312.016-164.676,313-266c1-103-34-221.816-200-278.044c-142.542-48.282-346.846-37.455-471,31.044
-	c-116,64-154.263,213.533-81,304.619c92,114.381,410,116.381,476,2.891c62.975-108.289-40-203.51-158-206.51`,
-    playerPos: { x: 550, y: 400 },
-});
-zumaGame.appendTo(document.body);
-zumaGame.start();
+Zuma.DefaultColorList = ["#0C3406", "#077187", "#74A57F", "#ABD8CE", "#E4C5AF"];
+window.onload = () => {
+    const scoreDOM = document.body.querySelector('#score .num');
+    const startPopup = document.body.querySelector('#start');
+    const stopPopup = document.body.querySelector('#stop');
+    const finalPopup = document.body.querySelector('#final');
+    const finalNum = finalPopup.querySelector('.num');
+    const zumaGame = new Zuma({
+        width: 1200,
+        height: 800,
+        scale: 0.7,
+        path: `M235.5-36.5c0,0-129,157.858-143,381.918c-6.6,105.632,47,236.043,159,295.679s338.566,101.881,547,64.404
+    c199-35.781,312.016-164.676,313-266c1-103-34-221.816-200-278.044c-142.542-48.282-346.846-37.455-471,31.044
+    c-116,64-154.263,213.533-81,304.619c92,114.381,410,116.381,476,2.891c62.975-108.289-40-203.51-158-206.51`,
+        playerPos: { x: 550, y: 400 },
+        updateScore: (score) => {
+            scoreDOM.innerHTML = `${score}`;
+        },
+        updateFinal: (isFinal) => {
+            if (isFinal) {
+                finalPopup.classList.add('active');
+                finalNum.innerHTML = `${zumaGame.score}`;
+            }
+        }
+    });
+    zumaGame.appendTo(document.body);
+    startPopup.querySelector('.button').addEventListener('click', () => {
+        startPopup.classList.remove('active');
+        zumaGame.start();
+    });
+    stopPopup.querySelector('#start-btn').addEventListener('click', () => {
+        stopPopup.classList.remove('active');
+        setTimeout(() => {
+            zumaGame.start();
+        }, 100);
+    });
+    stopPopup.querySelector('#reset-btn').addEventListener('click', () => {
+        stopPopup.classList.remove('active');
+        zumaGame.reset().start();
+    });
+    finalPopup.querySelector('.button').addEventListener('click', () => {
+        finalPopup.classList.remove('active');
+        zumaGame.reset().start();
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Escape' && zumaGame.isInit) {
+            zumaGame.stop();
+            stopPopup.classList.add('active');
+        }
+    });
+    window.addEventListener('blur', function (e) {
+        if (zumaGame.isInit && !zumaGame.isFinal) {
+            zumaGame.stop();
+            stopPopup.classList.add('active');
+        }
+    });
+};

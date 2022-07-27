@@ -16,22 +16,53 @@
         rel="stylesheet"
         href="./css/style.css"
     >
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <!-- <div id="container" class="container">
-        <svg
-            x="0px"
-            y="0px"
-            width="440.5px"
-            height="147.2px"
-            viewBox="0 0 440.5 147.2"
-        >
-            <path
-                d="M1.3,78c0,0,74-172.3,198,0s240-38.3,240-38.3"
-            />
-        </svg>
-    </div> -->
+    <div class="shadow"></div>
+    <div class="github">
+        <a href="https://github.com/lin-ting-yu/Zuma" target="blank">&lt;&gt;</a>
+    </div>
+    <div id="score" class="score">
+        <div class="title">SCORE</div>
+        <div class="num">0</div>
+    </div>
+    <div class="popup-container">
+        <div id="start" class="popup active">
+            <div class="title">HELLO !</div>
+            <div class="info">
+                <ul>
+                    <li>LEFT CLICK TO SHOOT MARBLE</li>
+                    <li>PRESS "SPACE" TO SWITCH THE MARBLE COLOR</li>
+                    <li>PRESS "ESC" TO STOP</li>
+                </ul>
+            </div>
+            <div class="button-container">
+                <div class="button">START</div>
+            </div>
+        </div>
+        <div id="stop" class="popup">
+            <div class="title">HELLO !</div>
+            <div class="info">
+                YOOOOU JUSSSSSST NEED A BRRRRRRREAK !
+            </div>
+            <div class="button-container">
+                <div id="start-btn" class="button">START</div>
+                <div id="reset-btn" class="button button-2">RESTART</div>
+            </div>
+        </div>
+        <div id="final" class="popup">
+            <div class="title">HELLO !</div>
+            <div class="info">
+                YOU GOT <span class="num"></span> SCORES !
+            </div>
+            <div class="button-container">
+                <div class="button">RESTART</div>
+            </div>
+        </div>
+        <div class="mask"></div>
+    </div>
 </body>
 <script
     type="application/javascript"
