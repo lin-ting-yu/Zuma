@@ -164,11 +164,13 @@ class Zuma {
 
     this.Player = new Player(data.playerPos);
     this.Player.appendTo(this.Container);
-    this.colorData.forEach((color) => {
-      this.marbleCount[color] = 0;
+    this.colorList = [...Zuma.DefaultColorList];
+    this.colorList.forEach((color) => {
+      this.marbleColorCount[color] = 0;
     });
     
   }
+  static readonly DefaultColorList = ["#ff2244", "#115599", "#dddddd", "#449944", "#660000"];
   private readonly width: number;
   private readonly height: number;
   private readonly AllMarbleLength = 100;
@@ -181,16 +183,15 @@ class Zuma {
   private autoAddMarbleCount = 0;
   private marbleDataList: MarbleData[] = [];
   private marbleBoomList: MarbleBoomData[] = [];
-  // private prevAddTime: number = 0;
-  private moveTime: number = 0;
+  private marbleColorCount = {};
   private time: number;
-  private colorData = ["#ff2244", "#115599", "#dddddd", "#449944", "#660000"];
-  private marbleCount = {};
+  private moveTimes: number = 0;
+  private colorList: string[];
   private isStart = false;
   private isInit = false;
-
-  private _isFinal = false;
+  private isFinal = false;
   private windowEventList: { name: string, fn: (...e) => void }[] = [];
+  private checkDeleteAfterTouchData: { [marbleId: string]: boolean; } = {};
   
   private readonly Player: Player;
   private playerMarble: {
@@ -200,10 +201,6 @@ class Zuma {
     now: null,
     next: null
   };
-
-  get isFinal(): boolean {
-    return this._isFinal;
-  }
 
   private _blood = 100;
   get blood(): number {
@@ -231,11 +228,14 @@ class Zuma {
     this.marbleDataList.length = 0;
     this.autoAddMarbleCount = 0;
     this.moveSpeed = 4;
-    Object.keys(this.marbleCount).forEach((color) => {
-      this.marbleCount[color] = 0;
+    this.colorList = [...Zuma.DefaultColorList];
+    this.checkDeleteAfterTouchData = {};
+    Object.keys(this.marbleColorCount).forEach((color) => {
+      this.marbleColorCount[color] = 0;
     });
     return this;
   }
+
   destroy(): void {
     this.reset();
     if (this.parent) {
@@ -245,11 +245,6 @@ class Zuma {
       window.removeEventListener(d.name, d.fn)
     });
     this.windowEventList = [];
-  }
-  createMarble(): Marble {
-    const marble = new Marble({ color: this.getColor() })
-    this.marbleCount[marble.Color]++;
-    return marble;
   }
 
   appendTo(parent: HTMLElement): Zuma {
@@ -282,7 +277,7 @@ class Zuma {
     if (this.marbleDataList.length >= this.InitMarbleLength) {
       this.isInit = true;
       this.moveSpeed = 20;
-      this.moveTime = this.moveSpeed;
+      this.moveTimes = this.moveSpeed;
       this.playerMarble.now = this.createMarble();
       this.playerMarble.next = this.createMarble();
       this.Player
@@ -304,9 +299,7 @@ class Zuma {
       return;
     }
     if (firstMarble.percent >= 0.99) {
-      this.marbleCount[firstMarble.marble.Color]--;
-      firstMarble.marble.remove();
-      this.marbleDataList.splice(0, 1);
+      this.removeMarbleFromDataList(firstMarble.marble);
     }
     const moveNum = Marble.Size / this.moveSpeed;
     firstMarble.percent += moveNum / this.PathLength;
@@ -316,19 +309,30 @@ class Zuma {
     firstMarble.marble.setPosition(pos.x, pos.y);
 
     let prevMarble = firstMarble.marble;
-
+    const deleteList: Marble[] = [];
     for (let i = 1; i < this.marbleDataList.length; i++) {
       const marbleData = this.marbleDataList[i];
       if (marbleData.percent >= 0.99) {
-        this.marbleCount[marbleData.marble.Color]--;
-        marbleData.marble.remove();
-        this.marbleDataList.splice(i, 1);
+        this.removeMarbleFromDataList(marbleData.marble, i);
         continue;
       }
       const overlap = prevMarble.overlap(marbleData.marble);
       if (overlap > 0) {
+        // 檢查退回後修不需要刪除
+        if (this.checkDeleteAfterTouchData[marbleData.marble.ID]) {
+          delete this.checkDeleteAfterTouchData[marbleData.marble.ID];
+          if (marbleData.marble.Color === prevMarble.Color) {
+            const list = this.getNeerSameMarble(marbleData.marble);
+            if (list.length > 3) {
+              deleteList.push(...list);
+            }
+          }
+        }
         marbleData.percent += overlap / this.PathLength;
       } else if (overlap < -5) {
+        if (overlap < -Marble.Size) {
+          this.checkDeleteAfterTouchData[marbleData.marble.ID] = true;
+        }
         const moveNum = (Marble.Size / this.moveSpeed) * 4;
         marbleData.percent -= moveNum / this.PathLength;
       }
@@ -338,6 +342,9 @@ class Zuma {
       marbleData.marble.setPosition(pos.x, pos.y);
       prevMarble = marbleData.marble;
     }
+    deleteList.forEach(marble => {
+      this.removeMarbleFromDataList(marble);
+    })
   }
 
   private moveMoveMarbleBoom(): void {
@@ -358,14 +365,11 @@ class Zuma {
         const overlap = data.marble.overlap(marbleData.marble);
         if (overlap > 5) {
           if (data.marble.Color === marbleData.marble.Color) {
-            const sameList = this.getMarbleSameNeer(marbleData.marble);
+            const sameList = this.getNeerSameMarble(marbleData.marble);
             if (sameList.length >= 2) {
               
               sameList.forEach(marble => {
-                const index = this.marbleDataList.findIndex(d => d.marble.ID === marble.ID);
-                marble.remove();
-                this.marbleCount[marble.Color] --;
-                this.marbleDataList.splice(index, 1);
+                this.removeMarbleFromDataList(marble);
               })
               deleteData.push({...data, isMove: false});
               return;
@@ -385,23 +389,50 @@ class Zuma {
       this.marbleBoomList.splice(index, 1);
       if (!date.isMove) {
         date.marble.remove();
-        this.marbleCount[date.marble.Color] --;
+        this.marbleColorCount[date.marble.Color] --;
       }
     })
   }
-  private addMarbleToNeer(marble: Marble, target: MarbleData): Zuma {
-    const index = this.marbleDataList.indexOf(target);
-    // TODO: 這裡要判斷加在前後
-    
-    this.marbleDataList.splice(index, 0, {
-      marble,
-      percent: target.percent - Marble.Size / this.PathLength / 2
-    })
+
+  private removeMarbleFromDataList(
+    marble: Marble, 
+    index = this.marbleDataList.findIndex(d => d.marble.ID === marble.ID)
+  ): Zuma {
+    delete this.checkDeleteAfterTouchData[marble.ID];
+    this.marbleDataList[index].marble.remove();
+    this.marbleDataList.splice(index, 1);
+    this.marbleColorCount[marble.Color]--;
     return this;
   }
-  private getColor(): string {
-    // TODO: 這裡要加判斷
-    return this.colorData[~~(Math.random() * 4)];
+
+  private addMarbleToNeer(marble: Marble, target: MarbleData): Zuma {
+    const index = this.marbleDataList.findIndex(d => d.marble.ID === target.marble.ID);
+    const prevPos = this.Path.getPointAtLength(
+      (target.percent - Marble.Size / this.PathLength) * this.PathLength
+    );
+    const nextPos = this.Path.getPointAtLength(
+      (target.percent + Marble.Size / this.PathLength) * this.PathLength
+    );
+    const prevGap = (prevPos.x - marble.x) ** 2 + (prevPos.y - marble.y) ** 2;
+    const nextGap = (nextPos.x - marble.x) ** 2 + (nextPos.y - marble.y) ** 2;
+    if (prevGap < nextGap) {
+      this.marbleDataList.splice(index - 1, 0, {
+        marble,
+        percent: target.percent - Marble.Size / this.PathLength / 2
+      })
+    } else {
+      this.marbleDataList.splice(index, 0, {
+        marble,
+        percent: target.percent + Marble.Size / this.PathLength / 2
+      })
+    }
+    return this;
+  }
+
+  private createMarble(): Marble {
+    const marble = new Marble({ color: this.getColor() })
+    this.marbleColorCount[marble.Color]++;
+    return marble;
   }
 
   private unshiftMarble(): Zuma {
@@ -415,7 +446,17 @@ class Zuma {
     return this;
   }
 
-  private getMarbleSameNeer(marble: Marble): Marble[] {
+  private getColor(): string {
+    const index = ~~(Math.random() * this.colorList.length);
+    const color = this.colorList[index];
+    if (this.marbleColorCount[color] || this.colorList.length === 1 || !this.isInit) {
+      return color;
+    }
+    this.colorList.splice(index, 1);
+    return this.getColor();
+  }
+
+  private getNeerSameMarble(marble: Marble): Marble[] {
     const index = this.marbleDataList.findIndex(
       (ele) => ele.marble.ID === marble.ID
     );
@@ -451,14 +492,15 @@ class Zuma {
       return;
     }
     this.time = innerTime;
-    if (this.moveTime === this.moveSpeed) {
+    if (this.moveTimes === this.moveSpeed) {
       this.unshiftMarble();
-      this.moveTime = 0;
+      this.moveTimes = 0;
     }
     this.moveMoveMarbleBoom();
     this.moveMoveMarbleData();
-    this.moveTime++;
+    this.moveTimes++;
   }
+
   private bindEvent(): void {
     const mousemove = (e: MouseEvent) => {
       
