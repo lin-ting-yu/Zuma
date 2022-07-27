@@ -253,7 +253,7 @@ class Zuma {
                     delete this.checkDeleteAfterTouchData[marbleData.marble.ID];
                     if (marbleData.marble.Color === prevMarble.Color) {
                         const list = this.getNeerSameMarble(marbleData.marble);
-                        if (list.length > 3) {
+                        if (list.length >= 3) {
                             deleteList.push(...list);
                         }
                     }
