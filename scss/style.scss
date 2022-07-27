@@ -29,6 +29,35 @@ html,body {
       opacity: 0;
       pointer-events: none;
   }
+  .player {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: rgba(#111, 0.5);
+    border-radius: 30px;
+    
+    .marble-1,
+    .marble-2 {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #111;
+    }
+    .marble-1 {
+        width: 60px;
+        height: 60px;
+        border-radius: 100px;
+        top: 0;
+    }
+    .marble-2 {
+        width: 30px;
+        height: 30px;
+        border-radius: 100px;
+        bottom: 0;
+    }
+  }
 }
 
 .marble {
