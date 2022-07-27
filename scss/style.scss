@@ -1,0 +1,42 @@
+@import "./reset";
+
+html,body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: #333;
+}
+
+// #obj {
+//   background: blue;
+//   width: 20px;
+//   height: 20px;
+//   border-radius: 10px;
+//   position: absolute;
+//   /* Align center */
+//   top: -10px;
+//   left: -10px;
+//   opacity: 0.5;
+// }
+
+.container {
+  position: relative;
+  overflow: hidden;
+  background-color: #eee;
+  svg {
+      opacity: 0;
+      pointer-events: none;
+  }
+}
+
+.marble {
+    background-color: rgba(#000, 0.5);
+    border-radius: 100px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    cursor: pointer;
+}
