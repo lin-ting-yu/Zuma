@@ -44,6 +44,7 @@ class Marble {
             return this;
         }
         this.parent.removeChild(this.DOM);
+        // this.parent = null;
         return this;
     }
     overlap(marble) {
@@ -142,7 +143,6 @@ class Zuma {
         this.colorData.forEach((color) => {
             this.marbleCount[color] = 0;
         });
-        this.bindEvent();
     }
     get isFinal() {
         return this._isFinal;
@@ -153,6 +153,9 @@ class Zuma {
     start() {
         this.isStart = true;
         this.time = new Date().getTime();
+        if (!this.windowEventList.length) {
+            this.bindEvent();
+        }
         this.animation();
         return this;
     }
@@ -172,8 +175,7 @@ class Zuma {
         return this;
     }
     destroy() {
-        this.isStart = false;
-        this.isInit = false;
+        this.reset();
         if (this.parent) {
             this.parent.removeChild(this.Container);
         }
@@ -236,6 +238,7 @@ class Zuma {
             return;
         }
         if (firstMarble.percent >= 0.99) {
+            this.marbleCount[firstMarble.marble.Color]--;
             firstMarble.marble.remove();
             this.marbleDataList.splice(0, 1);
         }
@@ -247,6 +250,7 @@ class Zuma {
         for (let i = 1; i < this.marbleDataList.length; i++) {
             const marbleData = this.marbleDataList[i];
             if (marbleData.percent >= 0.99) {
+                this.marbleCount[marbleData.marble.Color]--;
                 marbleData.marble.remove();
                 this.marbleDataList.splice(i, 1);
                 continue;
@@ -265,18 +269,57 @@ class Zuma {
         }
     }
     moveMoveMarbleBoom() {
-        const deleteData = new Map();
+        if (!this.marbleBoomList.length) {
+            return;
+        }
+        // TODO: 有空優化成分區檢測
+        const marbleDataList = this.marbleDataList;
+        const deleteData = [];
         this.marbleBoomList.forEach(data => {
             data.marble.setPosition(data.marble.x + data.speed.x, data.marble.y + data.speed.y);
+            for (let i = 0; i < marbleDataList.length; i++) {
+                const marbleData = marbleDataList[i];
+                const overlap = data.marble.overlap(marbleData.marble);
+                if (overlap > 5) {
+                    if (data.marble.Color === marbleData.marble.Color) {
+                        const sameList = this.getMarbleSameNeer(marbleData.marble);
+                        if (sameList.length >= 2) {
+                            sameList.forEach(marble => {
+                                const index = this.marbleDataList.findIndex(d => d.marble.ID === marble.ID);
+                                marble.remove();
+                                this.marbleCount[marble.Color]--;
+                                this.marbleDataList.splice(index, 1);
+                            });
+                            deleteData.push(Object.assign(Object.assign({}, data), { isMove: false }));
+                            return;
+                        }
+                    }
+                    this.addMarbleToNeer(data.marble, marbleData);
+                    deleteData.push(Object.assign(Object.assign({}, data), { isMove: true }));
+                    return;
+                }
+            }
             if (Math.abs(data.marble.x) > this.width || Math.abs(data.marble.y) > this.height) {
-                deleteData.set(data, true);
+                deleteData.push(Object.assign(Object.assign({}, data), { isMove: false }));
             }
         });
-        deleteData.forEach((_, key) => {
-            const index = this.marbleBoomList.indexOf(key);
-            key.marble.remove();
+        deleteData.forEach((date) => {
+            const index = this.marbleBoomList.findIndex(d => d.marble.ID === date.marble.ID);
             this.marbleBoomList.splice(index, 1);
+            if (!date.isMove) {
+                date.marble.remove();
+                this.marbleCount[date.marble.Color]--;
+            }
         });
+    }
+    addMarbleToNeer(marble, target) {
+        const index = this.marbleDataList.indexOf(target);
+        // TODO: 這裡要判斷加在前後
+        this.marbleDataList.splice(index, 0, {
+            marble,
+            percent: target.percent - Marble.Size / this.PathLength / 2
+        });
+        return this;
     }
     getColor() {
         // TODO: 這裡要加判斷
@@ -290,18 +333,14 @@ class Zuma {
             percent: 0,
         });
         this.autoAddMarbleCount++;
-        marble.DOM.addEventListener("click", () => {
-            this.removeMarble(marble);
-        });
         return this;
     }
     getMarbleSameNeer(marble) {
         const index = this.marbleDataList.findIndex((ele) => ele.marble.ID === marble.ID);
-        const neerList = [];
-        neerList[index] = marble;
+        const neerList = [marble];
         for (let i = index + 1; i < this.marbleDataList.length; i++) {
             if (this.marbleDataList[i].marble.Color === marble.Color) {
-                neerList[i] = this.marbleDataList[i].marble;
+                neerList.push(this.marbleDataList[i].marble);
             }
             else {
                 break;
@@ -309,41 +348,13 @@ class Zuma {
         }
         for (let i = index - 1; i >= 0; i--) {
             if (this.marbleDataList[i].marble.Color === marble.Color) {
-                neerList[i] = this.marbleDataList[i].marble;
+                neerList.push(this.marbleDataList[i].marble);
             }
             else {
                 break;
             }
         }
         return neerList;
-    }
-    removeMarble(marble) {
-        const index = this.marbleDataList.findIndex((ele) => ele.marble.ID === marble.ID);
-        const deleteIndexList = [];
-        deleteIndexList[index] = true;
-        marble.remove();
-        for (let i = index + 1; i < this.marbleDataList.length; i++) {
-            if (this.marbleDataList[i].marble.Color === marble.Color) {
-                deleteIndexList[i] = true;
-                this.marbleCount[marble.Color]--;
-                this.marbleDataList[i].marble.remove();
-            }
-            else {
-                break;
-            }
-        }
-        for (let i = index - 1; i >= 0; i--) {
-            if (this.marbleDataList[i].marble.Color === marble.Color) {
-                deleteIndexList[i] = true;
-                this.marbleCount[marble.Color]--;
-                this.marbleDataList[i].marble.remove();
-            }
-            else {
-                break;
-            }
-        }
-        this.marbleDataList = this.marbleDataList.filter((_, i) => !deleteIndexList[i]);
-        return this;
     }
     animation() {
         if (!this.isStart) {
