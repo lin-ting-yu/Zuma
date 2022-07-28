@@ -187,8 +187,8 @@ class Zuma {
     this.updateFinal = data.updateFinal;
   }
   static readonly DefaultColorList = ["#0C3406", "#077187", "#74A57F", "#ABD8CE", "#E4C5AF"];
-  private readonly updateScore: (score: number) => void;
-  private readonly updateFinal: (isFinal: boolean) => void;
+  private readonly updateScore: undefined | ((score: number) => void);
+  private readonly updateFinal: undefined | ((isFinal: boolean) => void);
   private readonly width: number;
   private readonly height: number;
   private readonly AllMarbleLength = 100;
@@ -371,7 +371,7 @@ class Zuma {
         continue;
       }
       const overlap = prevMarble.marble.overlap(marbleData.marble);
-      if (overlap > 0) {
+      if (overlap > 0 || prevMarble.percent > marbleData.percent) {
         // 檢查退回後修不需要刪除
         if (this.checkDeleteAfterTouchData[marbleData.marble.ID]) {
           delete this.checkDeleteAfterTouchData[marbleData.marble.ID];
@@ -382,7 +382,11 @@ class Zuma {
             }
           }
         }
-        marbleData.percent += overlap / this.PathLength;
+        if (prevMarble.percent > marbleData.percent) {
+          marbleData.percent = prevMarble.percent + Marble.Size / this.PathLength;
+        } else {
+          marbleData.percent += overlap / this.PathLength;
+        }
       } else if (overlap < -5 && marbleData.percent > prevMarble.percent) {
         if (overlap < -Marble.Size) {
           this.checkDeleteAfterTouchData[marbleData.marble.ID] = true;
@@ -512,20 +516,34 @@ class Zuma {
   }
 
   private getNeerSameMarble(marble: Marble): Marble[] {
+    let checkMarble: Marble;
     const index = this.marbleDataList.findIndex(
       (ele) => ele.marble.ID === marble.ID
     );
     const neerList: Marble[] = [marble];
+
+    checkMarble = marble;
     for (let i = index + 1; i < this.marbleDataList.length; i++) {
-      if (this.marbleDataList[i].marble.Color === marble.Color) {
-        neerList.push(this.marbleDataList[i].marble);
+      const nowMarble = this.marbleDataList[i].marble;
+      if (
+        nowMarble.Color === checkMarble.Color &&
+        nowMarble.overlap(checkMarble) > (Marble.Size / -10)
+      ) {
+        checkMarble = nowMarble;
+        neerList.push(nowMarble);
       } else {
         break;
       }
     }
+    checkMarble = marble;
     for (let i = index - 1; i >= 0; i--) {
-      if (this.marbleDataList[i].marble.Color === marble.Color) {
-        neerList.push(this.marbleDataList[i].marble);
+      const nowMarble = this.marbleDataList[i].marble;
+      if (
+        nowMarble.Color === checkMarble.Color &&
+        nowMarble.overlap(checkMarble) > (Marble.Size / -10)
+      ) {
+        checkMarble = nowMarble;
+        neerList.push(nowMarble);
       } else {
         break;
       }
@@ -605,11 +623,11 @@ class Zuma {
 
 
 window.onload = () => {
-  const scoreDOM = document.body.querySelector('#score .num');
-  const startPopup = document.body.querySelector('#start');
-  const stopPopup = document.body.querySelector('#stop');
-  const finalPopup = document.body.querySelector('#final');
-  const finalNum = finalPopup.querySelector('.num');
+  const scoreDOM: HTMLElement = document.body.querySelector('#score .num') as HTMLElement;
+  const startPopup: HTMLElement = document.body.querySelector('#start') as HTMLElement;
+  const stopPopup: HTMLElement = document.body.querySelector('#stop') as HTMLElement;
+  const finalPopup: HTMLElement = document.body.querySelector('#final') as HTMLElement;
+  const finalNum: HTMLElement = finalPopup.querySelector('.num') as HTMLElement;
 
   const zumaGame = new Zuma({
     width: 1200,
@@ -631,30 +649,30 @@ window.onload = () => {
   });
   zumaGame.appendTo(document.body);  
   
-  startPopup.querySelector('.button').addEventListener('click', () => {
+  (startPopup.querySelector('.button') as HTMLElement).addEventListener('click', () => {
     startPopup.classList.remove('active');
     zumaGame.start();
-  })
-  stopPopup.querySelector('#start-btn').addEventListener('click', () => {
+  });
+  (stopPopup.querySelector('#start-btn') as HTMLElement).addEventListener('click', () => {
     stopPopup.classList.remove('active');
     setTimeout(() => {
       zumaGame.start();
     }, 100)
-  })
-  stopPopup.querySelector('#reset-btn').addEventListener('click', () => {
+  });
+  (stopPopup.querySelector('#reset-btn') as HTMLElement).addEventListener('click', () => {
     stopPopup.classList.remove('active');
     zumaGame.reset().start();
-  })
-  finalPopup.querySelector('.button').addEventListener('click', () => {
+  });
+  (finalPopup.querySelector('.button') as HTMLElement).addEventListener('click', () => {
     finalPopup.classList.remove('active');
     zumaGame.reset().start();
-  })
+  });
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape' && zumaGame.isInit) {
       zumaGame.stop();
       stopPopup.classList.add('active');
     }
-  })
+  });
   window.addEventListener('blur', function (e) {
     if (zumaGame.isInit && !zumaGame.isFinal) {
       zumaGame.stop();
