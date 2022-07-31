@@ -1,664 +1,143 @@
-const OneFrameTime = 17;
-
-const createDiv: (
-  classList: string[],
-  children?: HTMLElement[]
-) => HTMLElement = (classList, children = []) => {
-  const div = document.createElement("div");
-  div.classList.add(...classList);
-  children.forEach((ele) => {
-    div.appendChild(ele);
-  });
-  return div;
-};
-
-const createElementNS: (name: string, attr: { [key: string]: any }) => any = (
-  name,
-  attr
-) => {
-  const xmlns = "http://www.w3.org/2000/svg";
-  const elementNS = document.createElementNS(xmlns, name);
-  Object.keys(attr).forEach((key) => {
-    elementNS.setAttributeNS(null, key, attr[key]);
-  });
-  return elementNS;
-};
-
-class Marble {
-  constructor({ color = `#ff2244` }) {
-    this.Color = color;
-    this.DOM.style.backgroundColor = this.Color;
-    this.DOM.style.width = `${Marble.Size}px`;
-    this.DOM.style.height = `${Marble.Size}px`;
-  }
-  static readonly Size = 60;
-  readonly ID = `${(~~(Math.random() * 1000000000))
-    .toString(16)
-    .toLocaleUpperCase()}`;
-  readonly DOM: HTMLElement = createDiv(["marble"]);
-  readonly Color: string;
-  parent: HTMLElement | null;
-  x: number;
-  y: number;
-
-  setPosition(x: number, y: number): Marble {
-    this.x = x;
-    this.y = y;
-    if (this.DOM) {
-      this.DOM.style.transform = `translate(calc(${this.x}px - 50%), calc(${this.y}px - 50%))`;
-    }
-    return this;
-  }
-
-  appendTo(parent: HTMLElement): Marble {
-    this.parent = parent;
-    parent.appendChild(this.DOM);
-    return this;
-  }
-
-  remove(): Marble {
-    if (!this.parent) {
-      return this;
-    }
-    this.parent.removeChild(this.DOM);
-    this.parent = null;
-    return this;
-  }
-
-  overlap(marble: Marble): number {
-    let r =
-      Marble.Size -
-      Math.sqrt((this.x - marble.x) ** 2 + (this.y - marble.y) ** 2);
-    return r;
-  }
-}
-
-interface MarbleData {
-  marble: Marble;
-  percent: number;
-}
-
-interface MarbleBoomData {
-  marble: Marble;
-  speed: { x: number; y: number; };
-}
-
-class Player {
-  constructor({ x = 0, y = 0 }) {
-    this.X = x;
-    this.Y = y;
-    this.DOM.style.transform = `translate(calc(${this.X}px - 50%), calc(${this.Y}px - 50%)) rotate(0deg)`;
-  }
-  readonly Marble: HTMLElement = createDiv(["marble-1"]);
-  readonly NextMarbleList: HTMLElement[] = [createDiv(["marble-2"]), createDiv(["marble-2"]), createDiv(["marble-2"])];
-  readonly DOM: HTMLElement = createDiv(["player"], [
-    this.Marble,
-    ...this.NextMarbleList
-  ]);
-  readonly X: number;
-  readonly Y: number;
-
-  private parent: HTMLElement;
-  private lookX: number;
-  private lookY: number;
-  private rotate: number;
-
-  lookAt(x: number, y: number): Player {
-    if (!this.parent) {
-      return this;
-    }
-    this.lookX = x;
-    this.lookY = y;
-    const rect = this.DOM.getBoundingClientRect();
-    const innerX = rect.left + (rect.right - rect.left) / 2;
-    const innerY = rect.top + (rect.bottom - rect.top) / 2;
-    this.rotate = Math.atan2(this.lookY - innerY, this.lookX - innerX) * 180 / Math.PI + 90;
-    this.DOM.style.transform = `translate(calc(${this.X}px - 50%), calc(${this.Y}px - 50%)) rotate(${this.rotate}deg)`;
-    return this;
-  }
-  appendTo(parent: HTMLElement): Player {
-    this.parent = parent;
-    this.parent.appendChild(this.DOM);
-    return this;
-  }
-  setMarbleColor(color: string): Player {
-    this.Marble.style.backgroundColor = color;
-    return this;
-  }
-  setNextMarbleColor(color: string): Player {
-    this.NextMarbleList.forEach(dom => {
-      dom.style.backgroundColor = color;
-    })
-    return this;
-  }
-  getVector() {
-    const innerRotate = this.rotate - 90;
-    return {
-      x: Math.cos(innerRotate * Math.PI / 180) * 30,
-      y: Math.sin(innerRotate * Math.PI / 180) * 30,
-    }
-  }
-}
-
-class Zuma {
-  constructor(data: {
-    width: number;
-    height: number;
-    path: string;
-    scale: number;
-    playerPos: { x: number; y: number };
-    updateScore?: (score: number) => void;
-    updateFinal?: (isFinal: boolean) => void;
-  }) {
-    this.width = data.width;
-    this.height = data.height;
-    const svg: SVGSVGElement = createElementNS("svg", {
-      x: "0px",
-      y: "0px",
-      width: `${data.width}px`,
-      height: `${data.height}px`,
-      viewBox: `0 0 ${data.width} ${data.height}`,
-    });
-    svg.appendChild(this.Path);
-    this.Path.setAttributeNS(null, "d", data.path);
-    this.PathLength = this.Path.getTotalLength();
-    
-    const startHolePos = this.Path.getPointAtLength(0);
-    const finalHolePos = this.Path.getPointAtLength(this.PathLength);
-    const startHole = createDiv(['start-hole']);
-    const finalHole = createDiv(['final-hole']);
-    startHole.style.left = `${startHolePos.x}px`;
-    startHole.style.top = `${startHolePos.y}px`;
-    finalHole.style.left = `${finalHolePos.x}px`;
-    finalHole.style.top = `${finalHolePos.y}px`;
-    this.Container.appendChild(startHole);
-    this.Container.appendChild(finalHole);
-
-    this.Container.style.width = `${data.width}px`;
-    this.Container.style.height = `${data.height}px`;
-    this.Container.style.transform = `scale(${data.scale || 1})`;
-    this.Player = new Player(data.playerPos);
-    this.Player.appendTo(this.Container);
-    this.colorList = [...Zuma.DefaultColorList];
-    this.colorList.forEach((color) => {
-      this.marbleColorCount[color] = 0;
-    });
-    this.updateScore = data.updateScore;
-    this.updateFinal = data.updateFinal;
-  }
-  static readonly DefaultColorList = ["#0C3406", "#077187", "#74A57F", "#ABD8CE", "#E4C5AF"];
-  private readonly updateScore: (score: number) => void;
-  private readonly updateFinal: (isFinal: boolean) => void;
-  private readonly width: number;
-  private readonly height: number;
-  private readonly AllMarbleLength = 100;
-  private readonly InitMarbleLength = 20;
-  private readonly Container: HTMLElement = createDiv(["container"], [
-    createDiv(['leaf', 'leaf-01']),
-    createDiv(['leaf', 'leaf-02']),
-    createDiv(['leaf', 'leaf-03']),
-    createDiv(['leaf', 'leaf-04']),
-    createDiv(['leaf', 'leaf-05']),
-    createDiv(['leaf', 'leaf-06'])
-  ]);
-  private readonly Path: SVGPathElement = createElementNS("path", {});
-  private readonly PathLength: number;
-  private parent: HTMLElement;
-  private moveSpeed: number = 4;
-  private autoAddMarbleCount = 0;
-  private marbleDataList: MarbleData[] = [];
-  private marbleBoomList: MarbleBoomData[] = [];
-  private marbleColorCount = {};
-  private time: number;
-  private moveTimes: number = 0;
-  private colorList: string[];
-  private isStart = false;
-  private _isInit = false;
-  private _isFinal = false;
-  private windowEventList: { name: string, fn: (...e) => void }[] = [];
-  private checkDeleteAfterTouchData: { [marbleId: string]: boolean; } = {};
-  
-  private readonly Player: Player;
-  private playerMarble: {
-    now: Marble | null;
-    next: Marble | null;
-  } = {
-    now: null,
-    next: null
-  };
-
-  private _score = 0;
-
-  get isInit(): boolean {
-    return this._isInit;
-  }
-
-  set isFinal(isFinal: boolean) {
-    this._isFinal = isFinal;
-    this.updateFinal && this.updateFinal(this._isFinal);
-  }
-  get isFinal(): boolean {
-    return this._isFinal;
-  }
-
-  set score(score: number) {
-    this._score = score;
-    this.updateScore && this.updateScore(this._score);
-  }
-  get score(): number {
-    return this._score;
-  }
-
-  start(): Zuma {
-    this.isStart = true;
-    this.time = new Date().getTime();
-    if (!this.windowEventList.length) {
-      this.bindEvent();
-    }
-    this.animation();
-    return this;
-  }
-
-  stop(): Zuma {
-    this.isStart = false;
-    return this;
-  }
-
-  reset(): Zuma {
-    this.isStart = false;
-    this._isInit = false;
-    this.isFinal = false;
-    this.autoAddMarbleCount = 0;
-    this.score = 0;
-    this.moveSpeed = 4;
-    this.colorList = [...Zuma.DefaultColorList];
-    this.marbleDataList.forEach(d => d.marble.remove());
-    this.marbleBoomList.forEach(d => d.marble.remove());
-    this.marbleDataList.length = 0;
-    this.marbleBoomList.length = 0;
-    this.checkDeleteAfterTouchData = {};
-    this.playerMarble.now = null;
-    this.playerMarble.next = null;
-    this.Player
-      .setMarbleColor('')
-      .setNextMarbleColor('');
-    Object.keys(this.marbleColorCount).forEach((color) => {
-      this.marbleColorCount[color] = 0;
-    });
-    return this;
-  }
-
-  destroy(): void {
-    this.reset();
-    if (this.parent) {
-      this.parent.removeChild(this.Container);
-    }
-    this.windowEventList.forEach(d => {
-      window.removeEventListener(d.name, d.fn)
-    });
-    this.windowEventList = [];
-  }
-
-  appendTo(parent: HTMLElement): Zuma {
-    this.parent = parent;
-    this.parent.appendChild(this.Container);
-    return this;
-  }
-
-  private attack(): Zuma {
-    if (!this.Player || !this.playerMarble.now || !this.playerMarble.next) {
-      return this;
-    }
-    const vector = this.Player.getVector();
-    this.marbleBoomList.push({
-      marble: this.playerMarble.now,
-      speed: vector
-    })
-    this.playerMarble.now.appendTo(this.Container);
-    this.playerMarble.now.setPosition(this.Player.X, this.Player.Y);
-    this.playerMarble.now = this.playerMarble.next;
-    this.playerMarble.next = this.createMarble();
-    this.Player
-      .setMarbleColor(this.playerMarble.now.Color)
-      .setNextMarbleColor(this.playerMarble.next.Color);
-    return this;
-  }
-
-  private init(): Zuma {
-    const innerTime = new Date().getTime();
-    if (this.marbleDataList.length >= this.InitMarbleLength && this.isStart) {
-      this._isInit = true;
-      this.moveSpeed = 20;
-      this.moveTimes = this.moveSpeed;
-      this.playerMarble.now = this.createMarble();
-      this.playerMarble.next = this.createMarble();
-      this.Player
-        .setMarbleColor(this.playerMarble.now.Color)
-        .setNextMarbleColor(this.playerMarble.next.Color);
-      return this;
-    }
-    if (innerTime - this.time < OneFrameTime * 4) {
-      return this;
-    }
-    this.time = innerTime;
-    this.unshiftMarble();
-    return this;
-  }
-
-  private moveMoveMarbleData(): void {
-    const firstMarble = this.marbleDataList[0];
-    if (!firstMarble) {
-      return;
-    }
-    if (firstMarble.percent >= 0.99) {
-      this.score -= 1;
-      this.removeMarbleFromDataList(firstMarble.marble);
-    }
-    const moveNum = Marble.Size / this.moveSpeed;
-    firstMarble.percent += moveNum / this.PathLength;
-    const pos = this.Path.getPointAtLength(
-      firstMarble.percent * this.PathLength
-    );
-    firstMarble.marble.setPosition(pos.x, pos.y);
-
-    let prevMarble: MarbleData = firstMarble;
-    const deleteList: Marble[] = [];
-    for (let i = 1; i < this.marbleDataList.length; i++) {
-      const marbleData = this.marbleDataList[i];
-      if (marbleData.percent >= 0.99) {
-        this.score -= 1;
-        this.removeMarbleFromDataList(marbleData.marble, i);
-        continue;
-      }
-      const overlap = prevMarble.marble.overlap(marbleData.marble);
-      if (overlap > 0) {
-        // 檢查退回後修不需要刪除
-        if (this.checkDeleteAfterTouchData[marbleData.marble.ID]) {
-          delete this.checkDeleteAfterTouchData[marbleData.marble.ID];
-          if (marbleData.marble.Color === prevMarble.marble.Color) {
-            const list = this.getNeerSameMarble(marbleData.marble);
-            if (list.length >= 3) {
-              deleteList.push(...list);
-            }
-          }
-        }
-        marbleData.percent += overlap / this.PathLength;
-      } else if (overlap < -5 && marbleData.percent > prevMarble.percent) {
-        if (overlap < -Marble.Size) {
-          this.checkDeleteAfterTouchData[marbleData.marble.ID] = true;
-        }
-        const moveNum = (Marble.Size / this.moveSpeed) * 4;
-        marbleData.percent -= moveNum / this.PathLength;
-      }
-      const pos = this.Path.getPointAtLength(
-        marbleData.percent * this.PathLength
-      );
-      marbleData.marble.setPosition(pos.x, pos.y);
-      prevMarble = marbleData;
-    }
-    deleteList.forEach(marble => {
-      this.score += 3;
-      this.removeMarbleFromDataList(marble);
-    })
-  }
-
-  private moveMoveMarbleBoom(): void {
-    if (!this.marbleBoomList.length) {
-      return;
-    }
-
-    // TODO: 有空優化成分區檢測
-    const marbleDataList = this.marbleDataList;
-    const deleteData: (MarbleBoomData & { isMove: boolean })[] = []; 
-    this.marbleBoomList.forEach(data => {
-      data.marble.setPosition(
-        data.marble.x + data.speed.x,
-        data.marble.y + data.speed.y
-      )
-      for (let i = 0; i < marbleDataList.length; i++) {
-        const marbleData = marbleDataList[i];
-        const overlap = data.marble.overlap(marbleData.marble);
-        if (overlap > 5) {
-          if (data.marble.Color === marbleData.marble.Color) {
-            const sameList = this.getNeerSameMarble(marbleData.marble);
-            if (sameList.length >= 2) {
-              this.score += sameList.length;
-              sameList.forEach(marble => {
-                this.removeMarbleFromDataList(marble);
-              })
-              deleteData.push({...data, isMove: false});
-              return;
-            } 
-          }
-          this.addMarbleToNeer(data.marble, marbleData);
-          deleteData.push({...data, isMove: true});
-          return;
-        }
-      }
-      if (Math.abs(data.marble.x) > this.width || Math.abs(data.marble.y) > this.height) {
-        deleteData.push({...data, isMove: false});
-      }
-    })
-    deleteData.forEach((date) => {
-      const index = this.marbleBoomList.findIndex(d => d.marble.ID === date.marble.ID);
-      this.marbleBoomList.splice(index, 1);
-      if (!date.isMove) {
-        date.marble.remove();
-        this.marbleColorCount[date.marble.Color] --;
-      }
-    })
-  }
-
-  private removeMarbleFromDataList(
-    marble: Marble, 
-    index = this.marbleDataList.findIndex(d => d.marble.ID === marble.ID)
-  ): Zuma {
-    delete this.checkDeleteAfterTouchData[marble.ID];
-    this.marbleDataList[index].marble.remove();
-    this.marbleDataList.splice(index, 1);
-    this.marbleColorCount[marble.Color]--;
-    return this;
-  }
-
-  private addMarbleToNeer(marble: Marble, target: MarbleData): Zuma {
-    const index = this.marbleDataList.findIndex(d => d.marble.ID === target.marble.ID);
-    const prevPos = this.Path.getPointAtLength(
-      (target.percent - Marble.Size / this.PathLength) * this.PathLength
-    );
-    const nextPos = this.Path.getPointAtLength(
-      (target.percent + Marble.Size / this.PathLength) * this.PathLength
-    );
-    const prevGap = (prevPos.x - marble.x) ** 2 + (prevPos.y - marble.y) ** 2;
-    const nextGap = (nextPos.x - marble.x) ** 2 + (nextPos.y - marble.y) ** 2;
-    if (prevGap < nextGap) {
-      this.marbleDataList.splice(index - 1, 0, {
-        marble,
-        percent: target.percent - Marble.Size / this.PathLength / 2
-      })
-    } else {
-      this.marbleDataList.splice(index, 0, {
-        marble,
-        percent: target.percent + Marble.Size / this.PathLength / 2
-      })
-    }
-    return this;
-  }
-
-  private createMarble(): Marble {
-    const marble = new Marble({ color: this.getColor() })
-    this.marbleColorCount[marble.Color]++;
-    return marble;
-  }
-
-  private unshiftMarble(): Zuma {
-    const marble = this.createMarble();
-    marble.appendTo(this.Container);
-    this.marbleDataList.unshift({
-      marble,
-      percent: 0,
-    });
-    this.autoAddMarbleCount++;
-    return this;
-  }
-
-  private getColor(): string {
-    const index = ~~(Math.random() * this.colorList.length);
-    const color = this.colorList[index];
-    if (this.marbleColorCount[color] || this.colorList.length === 1 || !this.isInit) {
-      return color;
-    }
-    this.colorList.splice(index, 1);
-    return this.getColor();
-  }
-
-  private getNeerSameMarble(marble: Marble): Marble[] {
-    const index = this.marbleDataList.findIndex(
-      (ele) => ele.marble.ID === marble.ID
-    );
-    const neerList: Marble[] = [marble];
-    for (let i = index + 1; i < this.marbleDataList.length; i++) {
-      if (this.marbleDataList[i].marble.Color === marble.Color) {
-        neerList.push(this.marbleDataList[i].marble);
-      } else {
-        break;
-      }
-    }
-    for (let i = index - 1; i >= 0; i--) {
-      if (this.marbleDataList[i].marble.Color === marble.Color) {
-        neerList.push(this.marbleDataList[i].marble);
-      } else {
-        break;
-      }
-    }
-    return neerList;
-  }
-
-  private animation(): void {
-    if (!this.isStart) {
-      return;
-    }
-    requestAnimationFrame(() => this.animation());
-    if (!this.isInit) {
-      this.init().moveMoveMarbleData();
-      return;
-    }
-    const innerTime = new Date().getTime();
-    if (innerTime - this.time < OneFrameTime) {
-      return;
-    }
-    this.time = innerTime;
-    if (
-      this.moveTimes === this.moveSpeed && 
-      this.autoAddMarbleCount < this.AllMarbleLength
-    ) {
-      this.unshiftMarble();
-      this.moveTimes = 0;
-    }
-    this.moveMoveMarbleBoom();
-    this.moveMoveMarbleData();
-    this.moveTimes++;
-    if (this.marbleDataList.length === 0) {
-      this.isFinal = true;
-    }
-  }
-
-  private bindEvent(): void {
-    const mousemove = (e: MouseEvent) => {
-      
-      if (!this.Player) {
-        return;
-      }
-      this.Player.lookAt(e.pageX, e.pageY);
-    }
-    const click = (e: MouseEvent) => {
-      if (!this.isStart || this.isFinal || !this.isInit ) {
-        return;
-      }
-      this.attack();
-      if (e.button === 1) {
-      }
-    }
-    const keydown = (e: KeyboardEvent) => {
-      if (!this.isStart || this.isFinal || !this.isInit ) {
-        return;
-      }
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (this.Player && this.playerMarble.now && this.playerMarble.next) {
-          [this.playerMarble.now, this.playerMarble.next] = [this.playerMarble.next, this.playerMarble.now];
-          this.Player
-            .setMarbleColor(this.playerMarble.now.Color)
-            .setNextMarbleColor(this.playerMarble.next.Color);
-        }
-      }
-    }
-    window.addEventListener("mousemove", mousemove);
-    window.addEventListener("click", click);
-    window.addEventListener("keydown", keydown);
-    this.windowEventList.push(
-      { name: 'mousemove', fn: mousemove },
-      { name: 'click', fn: click },
-      { name: 'keydown', fn: keydown },
-    )
-  }
-}
-
-
+import { Zuma } from './core.js';
+import { mobileCheck } from './tool.js';
 window.onload = () => {
-  const scoreDOM = document.body.querySelector('#score .num');
-  const startPopup = document.body.querySelector('#start');
-  const stopPopup = document.body.querySelector('#stop');
-  const finalPopup = document.body.querySelector('#final');
-  const finalNum = finalPopup.querySelector('.num');
+    const isMobile = mobileCheck();
+    const scoreDOM = document.body.querySelector('#score');
+    const startPopup = document.body.querySelector('#start-popup');
+    const stopPopup = document.body.querySelector('#stop-popup');
+    const finalPopup = document.body.querySelector('#final-popup');
+    const finalNum = document.body.querySelector('#final-score');
 
-  const zumaGame = new Zuma({
-    width: 1200,
-    height: 800,
-    scale: 0.7,
-    path: `M235.5-36.5c0,0-129,157.858-143,381.918c-6.6,105.632,47,236.043,159,295.679s338.566,101.881,547,64.404
-    c199-35.781,312.016-164.676,313-266c1-103-34-221.816-200-278.044c-142.542-48.282-346.846-37.455-471,31.044
-    c-116,64-154.263,213.533-81,304.619c92,114.381,410,116.381,476,2.891c62.975-108.289-40-203.51-158-206.51`,
-    playerPos: { x: 550, y: 400 },
-    updateScore: (score: number) => {
-      scoreDOM.innerHTML = `${score}`;
-    },
-    updateFinal: (isFinal: boolean) => {
-      if (isFinal) {
-        finalPopup.classList.add('active');
-        finalNum.innerHTML = `${zumaGame.score}`;
-      }
+    const zumaGame = new Zuma({
+        width: 1200,
+        height: 800,
+        scale: 0.7,
+        path: `M197.519,19.289C158.282,84.171,101.52,201.053,92.5,345.418c-6.6,105.632,47,236.043,159,295.679
+		s338.566,101.881,547,64.404c199-35.781,312.016-164.676,313-266c1-103-34-221.816-200-278.044
+		c-142.542-48.282-346.846-37.455-471,31.044c-116,64-154.263,213.533-81,304.619c92,114.381,410,116.381,476,2.891
+		c62.975-108.289-40-203.51-158-206.51`,
+        playerPos: { x: 550, y: 400 },
+        updateScore: (score: number) => {
+            scoreDOM.innerHTML = `${score}`;
+        },
+        updateFinal: (isFinal: boolean) => {
+            if (isFinal) {
+                finalPopup.classList.add('active');
+                finalNum.innerHTML = `${zumaGame.score}`;
+            }
+        }
+    });
+    zumaGame.appendTo(document.body);
+
+    const stopBtn = document.body.querySelector('#stop-btn');
+    const switchBtn = document.body.querySelector('#switch-btn');
+    const shootBtn = document.body.querySelector('#shoot-btn');
+    const moveBtn: HTMLElement = document.body.querySelector('#move-btn');
+    const moveBtnControl: HTMLElement = moveBtn.querySelector('.move-control');
+
+    if (!isMobile) {
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Escape' && zumaGame.isInit) {
+                zumaGame.stop();
+                stopPopup.classList.add('active');
+            }
+        });
+        window.addEventListener("keydown", (e: KeyboardEvent) => {
+            if (!zumaGame && e.code !== 'Space') {
+                return
+            }
+            e.preventDefault();
+            zumaGame.switchMarble();
+        });
+        window.addEventListener("mousemove", (e: MouseEvent) => {
+            if (!zumaGame) {
+                return;
+            }
+            zumaGame.lookAt(e.pageX, e.pageY);
+        });
+        window.addEventListener("click", (e: MouseEvent) => {
+            zumaGame.attack();
+        });
+    } else {
+        document.body.classList.add('is-mobile');
+        let isTouchstart = false;
+        const rotate = (e: TouchEvent) => {
+            const isMove = [...e.touches].find(event => event.target === moveBtn);
+            if (!zumaGame && !isTouchstart && !isMove) {
+                return;
+            }
+            const rect = moveBtn.getBoundingClientRect();
+            const innerX = rect.x + rect.width / 2;
+            const innerY = rect.y + rect.height / 2;
+            zumaGame.lookAtVector(isMove.pageX - innerX, isMove.pageY - innerY);
+            moveBtnControl.style.transform = `translate(-50%, -150%) rotate(${zumaGame.getPlayerRotate()}deg)`;
+        }
+        switchBtn.addEventListener('click', () => {
+            if (!zumaGame) {
+                return;
+            }
+            zumaGame.switchMarble();
+        });
+        shootBtn.addEventListener('click', () => {
+            if (!zumaGame) {
+                return;
+            }
+            zumaGame.attack();
+        });
+        stopBtn.addEventListener('click', () => {
+            if (!zumaGame) {
+                return;
+            }
+            zumaGame.stop();
+            stopBtn.classList.add('active');
+            stopPopup.classList.add('active');
+        });
+        moveBtn.addEventListener('touchstart', (e: TouchEvent) => {
+            isTouchstart = true;
+            rotate(e);
+        });
+        window.addEventListener('touchend', (e) => {
+            isTouchstart = false;
+        })
+        window.addEventListener('touchmove', rotate);
     }
-  });
-  zumaGame.appendTo(document.body);  
-  
-  startPopup.querySelector('.button').addEventListener('click', () => {
-    startPopup.classList.remove('active');
-    zumaGame.start();
-  })
-  stopPopup.querySelector('#start-btn').addEventListener('click', () => {
-    stopPopup.classList.remove('active');
-    setTimeout(() => {
-      zumaGame.start();
-    }, 100)
-  })
-  stopPopup.querySelector('#reset-btn').addEventListener('click', () => {
-    stopPopup.classList.remove('active');
-    zumaGame.reset().start();
-  })
-  finalPopup.querySelector('.button').addEventListener('click', () => {
-    finalPopup.classList.remove('active');
-    zumaGame.reset().start();
-  })
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'Escape' && zumaGame.isInit) {
-      zumaGame.stop();
-      stopPopup.classList.add('active');
-    }
-  })
-  window.addEventListener('blur', function (e) {
-    if (zumaGame.isInit && !zumaGame.isFinal) {
-      zumaGame.stop();
-      stopPopup.classList.add('active');
-    }
-});
-}
+
+    startPopup.querySelector('#init-btn').addEventListener('click', () => {
+        startPopup.classList.remove('active');
+        zumaGame.start();
+    });
+    stopPopup.querySelector('#start-btn').addEventListener('click', () => {
+        stopPopup.classList.remove('active');
+        stopBtn.classList.remove('active');
+        setTimeout(() => {
+            zumaGame.start();
+        }, 100);
+    });
+    stopPopup.querySelector('#reset-btn').addEventListener('click', () => {
+        stopPopup.classList.remove('active');
+        stopBtn.classList.remove('active');
+        zumaGame.reset().start();
+    });
+    finalPopup.querySelector('#restart-btn').addEventListener('click', () => {
+        finalPopup.classList.remove('active');
+        zumaGame.reset().start();
+    });
+
+    const resize = () => {
+        zumaGame.setScale(Math.min(
+            window.innerHeight / zumaGame.height,
+            window.innerWidth / zumaGame.width,
+            1
+        ));
+    };
+    window.addEventListener('resize', resize);
+    resize();
+
+    // window.addEventListener('blur', function (e) {
+    //     if (zumaGame.isInit && !zumaGame.isFinal) {
+    //         zumaGame.stop();
+    //         stopPopup.classList.add('active');
+    //     }
+    // });
+};
+

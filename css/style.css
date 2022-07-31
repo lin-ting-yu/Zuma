@@ -76,9 +76,15 @@ body {
   background-image: radial-gradient(circle at center, #002129, #000);
   overflow: hidden;
   font-family: "Josefin Sans", sans-serif;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
 }
 
 .container {
+  -ms-flex-negative: 0;
+      flex-shrink: 0;
   position: relative;
   background-image: url("./../image/bg.svg");
 }
@@ -91,6 +97,14 @@ body {
   position: absolute;
   top: -55px;
   left: -80px;
+}
+.container canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
 }
 .container .leaf {
   position: absolute;
@@ -291,6 +305,7 @@ body {
   top: 40px;
   right: 40px;
   background-color: rgba(255, 255, 255, 0.5);
+  font-size: 30px;
 }
 .github a {
   display: -webkit-box;
@@ -305,7 +320,6 @@ body {
   width: 100%;
   height: 100%;
   color: #002129;
-  font-size: 30px;
   font-weight: bold;
   text-decoration: none;
 }
@@ -324,6 +338,126 @@ body {
   font-size: 90px;
 }
 
+.mobile-control {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 18;
+  pointer-events: none;
+}
+.mobile-control .stop {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  width: 30px;
+  height: 30px;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 100px;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  pointer-events: auto;
+}
+.mobile-control .stop:before {
+  display: block;
+  content: "";
+  width: 4px;
+  height: 12px;
+  border-style: solid;
+  border-width: 5px;
+  border-color: transparent #002129 transparent #002129;
+}
+.mobile-control .stop.active:before {
+  width: 0;
+  height: 0;
+  color: #002129;
+  border-style: solid;
+  border-width: 6px;
+  border-color: transparent #002129 #002129 transparent;
+  -webkit-transform: translateX(-5px) scaleX(1.5) rotate(-45deg);
+          transform: translateX(-5px) scaleX(1.5) rotate(-45deg);
+}
+.mobile-control .left,
+.mobile-control .right {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  bottom: 20px;
+}
+.mobile-control .left {
+  left: 20px;
+}
+.mobile-control .right {
+  right: 20px;
+}
+.mobile-control .btn {
+  border-radius: 200px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border: solid 1px #fff;
+  pointer-events: auto;
+  -webkit-transform-origin: center center;
+          transform-origin: center center;
+}
+.mobile-control .btn:active {
+  -webkit-transform: scale(1.1);
+          transform: scale(1.1);
+}
+.mobile-control .btn.switch, .mobile-control .btn.shoot {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  width: 55%;
+  height: 55%;
+  text-align: center;
+  font-size: 30px;
+  color: #fff;
+  padding-top: 5px;
+  font-weight: bold;
+  position: absolute;
+}
+.mobile-control .btn.switch {
+  bottom: 0;
+  right: 0;
+}
+.mobile-control .btn.shoot {
+  top: -10px;
+  left: 0;
+}
+.mobile-control .btn.move {
+  width: 100%;
+  height: 100%;
+}
+.mobile-control .btn.move .move-control {
+  width: 30%;
+  height: 30%;
+  background-color: #fff;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  -webkit-transform-origin: center 150%;
+          transform-origin: center 150%;
+  -webkit-transform: translate(-50%, -150%) rotate(0);
+          transform: translate(-50%, -150%) rotate(0);
+}
+
 .popup-container {
   display: -webkit-box;
   display: -ms-flexbox;
@@ -336,6 +470,7 @@ body {
           justify-content: center;
   width: 100%;
   height: 100%;
+  padding: 20px;
   color: #002129;
   position: absolute;
   top: 0;
@@ -345,6 +480,7 @@ body {
 }
 .popup-container .popup {
   min-width: 300px;
+  max-width: calc(100% - 40px);
   padding: 50px 40px 30px;
   border-radius: 30px;
   opacity: 0;
@@ -379,15 +515,14 @@ body {
   letter-spacing: 1px;
 }
 .popup-container .popup .info {
-  font-size: 16px;
+  font-size: 18px;
   color: #002129;
   text-align: center;
 }
 .popup-container .popup .info ul {
   list-style-type: disc;
   padding-left: 1em;
-  -moz-text-align-last: left;
-       text-align-last: left;
+  text-align: left;
 }
 .popup-container .popup .info ul li {
   margin-top: 10px;
@@ -441,9 +576,11 @@ body {
   pointer-events: auto;
 }
 .popup-container .popup.active ~ .mask {
+  display: block;
   opacity: 1;
 }
 .popup-container .mask {
+  display: none;
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
@@ -453,7 +590,38 @@ body {
   opacity: 0;
   -webkit-transition: 0.5s;
   transition: 0.5s;
-  pointer-events: none;
+  pointer-events: auto;
+}
+
+body:not(.is-mobile) .mobile-show {
+  display: none;
+}
+
+body.is-mobile .github {
+  width: 30px;
+  height: 30px;
+  top: 20px;
+  right: 20px;
+  font-size: 20px;
+}
+body.is-mobile .score {
+  top: 20px;
+  left: 50%;
+  bottom: auto;
+  right: auto;
+  text-align: center;
+  -webkit-transform: translateX(-50%);
+          transform: translateX(-50%);
+}
+body.is-mobile .score .num {
+  font-size: 50px;
+  margin-top: 10px;
+}
+body.is-mobile .mobile-hode {
+  display: none;
+}
+body.is-mobile .mobile-show {
+  display: block;
 }
 
 @-webkit-keyframes leaf {

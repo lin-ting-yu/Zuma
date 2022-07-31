@@ -10,9 +10,11 @@ body {
     background-image: radial-gradient(circle at center, #002129, #000);
     overflow: hidden;
     font-family: 'Josefin Sans', sans-serif;
+    user-select: none;
 }
 
 .container {
+    flex-shrink: 0;
     position: relative;
     background-image: url("./../image/bg.svg");
     &::before {
@@ -24,6 +26,14 @@ body {
         position: absolute;
         top: -55px;
         left: -80px;
+    }
+    canvas {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 2;
     }
     .leaf {
         position: absolute;
@@ -197,6 +207,7 @@ body {
         opacity: 0.1;
     }
 }
+
 .github {
     width: 50px;
     height: 50px;
@@ -205,6 +216,7 @@ body {
     top: 40px;
     right: 40px;
     background-color: rgba(#fff, 0.5);
+    font-size: 30px;
     a {
         display: flex;
         align-items: center;
@@ -212,11 +224,11 @@ body {
         width: 100%;
         height: 100%;
         color: #002129;
-        font-size: 30px;
         font-weight: bold;
         text-decoration: none;
     }
 }
+
 .score {
     position: absolute;
     bottom: 40px;
@@ -231,12 +243,119 @@ body {
     }
 }
 
+.mobile-control {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 18;
+    pointer-events: none;
+    .stop {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 30px;
+        height: 30px;
+        top: 20px;
+        left: 20px;
+        background-color: rgba(#fff, 0.5);
+        border-radius: 100px;
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        pointer-events: auto;
+        &:before {
+            display: block;
+            content: '';
+            width: 4px;
+            height: 12px;
+            border-style: solid;
+            border-width: 5px;
+            border-color: transparent #002129 transparent #002129;
+        }
+        &.active {
+            &:before {
+                width: 0;
+                height: 0;
+                color: #002129;
+                border-style: solid;
+                border-width: 6px;
+                border-color: transparent #002129 #002129 transparent;
+                transform: translateX(-5px) scaleX(1.5) rotate(-45deg);
+            }
+        }
+    }
+    .left,
+    .right {
+        width: 100px;
+        height: 100px;
+        position: absolute;
+        bottom: 20px;
+    }
+    .left {
+        left: 20px;
+    }
+    .right {
+        right: 20px;
+    }
+    .btn {
+        border-radius: 200px;
+        background-color: rgba(#fff, 0.3);
+        border: solid 1px #fff;
+        pointer-events: auto;
+        transform-origin: center center;
+        &:active {
+            transform: scale(1.1);
+        }
+        &.switch,
+        &.shoot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 55%;
+            height: 55%;
+            text-align: center;
+            font-size: 30px;
+            color: #fff;
+            padding-top: 5px;
+            font-weight: bold;
+            position: absolute;
+        }
+        &.switch {
+            bottom: 0;
+            right: 0;
+        }
+        &.shoot {
+            top: -10px;
+            left: 0;
+        }
+        &.move {
+            width: 100%;
+            height: 100%;
+            .move-control {
+                width: 30%;
+                height: 30%;
+                background-color: #fff;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                pointer-events: none;
+                transform-origin: center 150%;
+                transform: translate(-50%, -150%) rotate(0);
+            }
+        }
+    }
+}
+
 .popup-container {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
     height: 100%;
+    padding: 20px;
     color: #002129;
     position: absolute;
     top: 0;
@@ -245,6 +364,7 @@ body {
     pointer-events: none;
     .popup {
         min-width: 300px;
+        max-width: calc(100% - 40px);
         padding: 50px 40px 30px;
         border-radius: 30px;
         opacity: 0;
@@ -275,13 +395,13 @@ body {
             letter-spacing: 1px;
         }
         .info {
-            font-size: 16px;
+            font-size: 18px;
             color: #002129;
             text-align: center;
             ul {
                 list-style-type: disc;
                 padding-left: 1em;
-                text-align-last: left;
+                text-align: left;
                 li {
                     margin-top: 10px;
                 }
@@ -325,10 +445,12 @@ body {
         transform: translateY(0px);
         pointer-events: auto;
         & ~ .mask{
+            display: block;
             opacity: 1;
         }
     }
     .mask {
+        display: none;
         width: 100%;
         height: 100%;
         background-color: rgba(#000, 0.5);
@@ -337,8 +459,42 @@ body {
         left: 0;
         opacity: 0;
         transition: 0.5s;
-        pointer-events: none;
+        pointer-events: auto;
     }
+}
+
+body:not(.is-mobile) {
+    .mobile-show {
+        display: none;
+    }
+}
+body.is-mobile {
+    .github {
+        width: 30px;
+        height: 30px;
+        top: 20px;
+        right: 20px;
+        font-size: 20px;
+    }
+    .score {
+        top: 20px;
+        left: 50%;
+        bottom: auto;
+        right: auto;
+        text-align: center;
+        transform: translateX(-50%);
+        .num {
+            font-size: 50px;
+            margin-top: 10px;
+        }
+    }
+    .mobile-hode {
+        display: none;
+    }
+    .mobile-show {
+        display: block;
+    }
+    
 }
 
 @keyframes leaf {

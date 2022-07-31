@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+    <title>ZUMA</title>
     <meta charset="UTF-8">
     <meta
         http-equiv="X-UA-Compatible"
@@ -11,7 +12,22 @@
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
-    <title>ZUMA</title>
+
+    <meta name="description" content="Complete Game Zuma using html typescript css and svg ! | 使用 html typescripe css 和 svg 完成祖馬遊戲">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Zuma Program Practice | Zuma 程式練習">
+    <meta property="og:url" content="https://github.com/lin-ting-yu/Zuma">
+    <meta property="og:image" content="./image/meta-image.png">
+    <meta property="og:image:width" content="600">
+    <meta property="og:image:height" content="315">
+    <meta property="og:site_name" content="Zuma Program Practice | Zuma 程式練習">
+    <meta property="og:description" content="Complete Game Zuma using html typescript css and svg ! | 使用 html typescripe css 和 svg 完成祖馬遊戲">
+    <meta property="og:updated_time" content="`${new Date().getTime()}`">
+    <meta name="twitter:title" shareTitle="Zuma Program Practice | Zuma 程式練習">
+    <meta name="twitter:description" shareDes="Complete Game Zuma using html typescript css and svg ! | 使用 html typescripe css 和 svg 完成祖馬遊戲">
+    <meta name="twitter:image" shareImg="./image/meta-image.png">
+    <meta name="twitter:domain" content="https://lin-ting-yu.github.io/">
+    
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link
         rel="stylesheet"
@@ -25,48 +41,64 @@
     <div class="github">
         <a href="https://github.com/lin-ting-yu/Zuma" target="blank">&lt;&gt;</a>
     </div>
-    <div id="score" class="score">
+    <div class="score">
         <div class="title">SCORE</div>
-        <div class="num">0</div>
+        <div id="score" class="num">0</div>
+    </div>
+    <div class="mobile-control mobile-show">
+        <div id="stop-btn" class="stop"></div>
+        <div class="left">
+            <div id="switch-btn" class="btn switch">½</div>
+            <div id="shoot-btn" class="btn shoot">♂</div>
+        </div>
+        <div class="right">
+            <div id="move-btn" class="btn move">
+                <div class="btn move-control"></div>
+            </div>
+        </div>
     </div>
     <div class="popup-container">
-        <div id="start" class="popup active">
+        <div id="start-popup" class="popup active">
             <div class="title">HELLO !</div>
             <div class="info">
-                <ul>
+                <ul class="mobile-hode">
                     <li>LEFT CLICK TO SHOOT MARBLE</li>
                     <li>PRESS "SPACE" TO SWITCH THE MARBLE COLOR</li>
                     <li>PRESS "ESC" TO STOP</li>
+                    <li>CLICK &lt;&gt; TO GITHUB</li>
+                </ul>
+                <ul class="mobile-show">
+                    <li>CLICK ♂ TO SHOOT MARBLE</li>
+                    <li>CLICK ½ TO SWITCH THE MARBLE COLOR</li>
+                    <li>CLICK || TO STOP</li>
+                    <li>CLICK &lt;&gt; TO GITHUB</li>
                 </ul>
             </div>
             <div class="button-container">
-                <div class="button">START</div>
+                <div id="init-btn" class="button">START</div>
             </div>
         </div>
-        <div id="stop" class="popup">
-            <div class="title">HELLO !</div>
-            <div class="info">
-                YOOOOU JUSSSSSST NEED A BRRRRRRREAK !
-            </div>
+        <div id="stop-popup" class="popup">
+            <div class="title">ZZZ..Z</div>
             <div class="button-container">
                 <div id="start-btn" class="button">START</div>
                 <div id="reset-btn" class="button button-2">RESTART</div>
             </div>
         </div>
-        <div id="final" class="popup">
+        <div id="final-popup" class="popup">
             <div class="title">HELLO !</div>
             <div class="info">
-                YOU GOT <span class="num"></span> SCORES !
+                YOU GOT <span id="final-score" class="num"></span> SCORES !
             </div>
             <div class="button-container">
-                <div class="button">RESTART</div>
+                <div id="restart-btn" class="button">RESTART</div>
             </div>
         </div>
         <div class="mask"></div>
     </div>
 </body>
 <script
-    type="application/javascript"
+    type="module"
     src="./js/script.js"
 ></script>
 
