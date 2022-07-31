@@ -147,8 +147,8 @@ export class Zuma {
   static readonly DefaultColorList = ["#0C3406", "#077187", "#74A57F", "#ABD8CE", "#E4C5AF"];
   readonly width: number;
   readonly height: number;
-  private readonly updateScore: (score: number) => void;
-  private readonly updateFinal: (isFinal: boolean) => void;
+  private readonly updateScore: undefined | ((score: number) => void);
+  private readonly updateFinal: undefined | ((isFinal: boolean) => void);
   private readonly AllMarbleLength = 100;
   private readonly InitMarbleLength = 20;
   private readonly Canvas: HTMLCanvasElement = document.createElement('canvas');
@@ -369,7 +369,7 @@ export class Zuma {
         continue;
       }
       const overlap = prevMarble.marble.overlap(marbleData.marble);
-      if (overlap > 0) {
+      if (overlap > 0 || prevMarble.percent > marbleData.percent) {
         // 檢查退回後修不需要刪除
         if (this.checkDeleteAfterTouchData[marbleData.marble.ID]) {
           delete this.checkDeleteAfterTouchData[marbleData.marble.ID];
@@ -380,7 +380,11 @@ export class Zuma {
             }
           }
         }
-        marbleData.percent += overlap / this.PathLength;
+        if (prevMarble.percent > marbleData.percent) {
+          marbleData.percent = prevMarble.percent + Marble.Size / this.PathLength;
+        } else {
+          marbleData.percent += overlap / this.PathLength;
+        }
       } else if (overlap < -5 && marbleData.percent > prevMarble.percent) {
         if (overlap < -Marble.Size) {
           this.checkDeleteAfterTouchData[marbleData.marble.ID] = true;
@@ -508,20 +512,33 @@ export class Zuma {
   }
 
   private getNeerSameMarble(marble: Marble): Marble[] {
+    let checkMarble: Marble;
     const index = this.marbleDataList.findIndex(
       (ele) => ele.marble.ID === marble.ID
     );
     const neerList: Marble[] = [marble];
+    checkMarble = marble;
     for (let i = index + 1; i < this.marbleDataList.length; i++) {
-      if (this.marbleDataList[i].marble.Color === marble.Color) {
-        neerList.push(this.marbleDataList[i].marble);
+      const nowMarble = this.marbleDataList[i].marble;
+      if (
+        nowMarble.Color === checkMarble.Color &&
+        nowMarble.overlap(checkMarble) > (Marble.Size / -10)
+      ) {
+        checkMarble = nowMarble;
+        neerList.push(nowMarble);
       } else {
         break;
       }
     }
+    checkMarble = marble;
     for (let i = index - 1; i >= 0; i--) {
-      if (this.marbleDataList[i].marble.Color === marble.Color) {
-        neerList.push(this.marbleDataList[i].marble);
+      const nowMarble = this.marbleDataList[i].marble;
+      if (
+        nowMarble.Color === checkMarble.Color &&
+        nowMarble.overlap(checkMarble) > (Marble.Size / -10)
+      ) {
+        checkMarble = nowMarble;
+        neerList.push(nowMarble);
       } else {
         break;
       }

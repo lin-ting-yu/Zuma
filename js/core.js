@@ -299,7 +299,7 @@ export class Zuma {
                 continue;
             }
             const overlap = prevMarble.marble.overlap(marbleData.marble);
-            if (overlap > 0) {
+            if (overlap > 0 || prevMarble.percent > marbleData.percent) {
                 // 檢查退回後修不需要刪除
                 if (this.checkDeleteAfterTouchData[marbleData.marble.ID]) {
                     delete this.checkDeleteAfterTouchData[marbleData.marble.ID];
@@ -310,7 +310,12 @@ export class Zuma {
                         }
                     }
                 }
-                marbleData.percent += overlap / this.PathLength;
+                if (prevMarble.percent > marbleData.percent) {
+                    marbleData.percent = prevMarble.percent + Marble.Size / this.PathLength;
+                }
+                else {
+                    marbleData.percent += overlap / this.PathLength;
+                }
             }
             else if (overlap < -5 && marbleData.percent > prevMarble.percent) {
                 if (overlap < -Marble.Size) {
@@ -420,19 +425,28 @@ export class Zuma {
         return this.getColor();
     }
     getNeerSameMarble(marble) {
+        let checkMarble;
         const index = this.marbleDataList.findIndex((ele) => ele.marble.ID === marble.ID);
         const neerList = [marble];
+        checkMarble = marble;
         for (let i = index + 1; i < this.marbleDataList.length; i++) {
-            if (this.marbleDataList[i].marble.Color === marble.Color) {
-                neerList.push(this.marbleDataList[i].marble);
+            const nowMarble = this.marbleDataList[i].marble;
+            if (nowMarble.Color === checkMarble.Color &&
+                nowMarble.overlap(checkMarble) > (Marble.Size / -10)) {
+                checkMarble = nowMarble;
+                neerList.push(nowMarble);
             }
             else {
                 break;
             }
         }
+        checkMarble = marble;
         for (let i = index - 1; i >= 0; i--) {
-            if (this.marbleDataList[i].marble.Color === marble.Color) {
-                neerList.push(this.marbleDataList[i].marble);
+            const nowMarble = this.marbleDataList[i].marble;
+            if (nowMarble.Color === checkMarble.Color &&
+                nowMarble.overlap(checkMarble) > (Marble.Size / -10)) {
+                checkMarble = nowMarble;
+                neerList.push(nowMarble);
             }
             else {
                 break;
